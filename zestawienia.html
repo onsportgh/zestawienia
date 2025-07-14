@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Generator SQL dla Subiekt GT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            background: #f6f8fa;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background: #fff;
+            margin-top: 40px;
+            padding: 32px 24px 24px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px #0001;
+            max-width: 560px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            margin-bottom: 12px;
+            font-size: 2.1rem;
+            color: #1a237e;
+            text-align: center;
+        }
+        .step {
+            margin: 18px 0 6px 0;
+            font-weight: 600;
+            color: #263238;
+            font-size: 1.12rem;
+        }
+        label {
+            font-size: 1.06rem;
+            margin-bottom: 6px;
+            color: #374151;
+        }
+        select, input[type="date"], input[type="number"] {
+            width: 100%;
+            padding: 10px 8px;
+            font-size: 1.08rem;
+            border-radius: 6px;
+            border: 1px solid #bdbdbd;
+            margin-bottom: 10px;
+            background: #f1f3f6;
+        }
+        button {
+            background: #1976d2;
+            color: #fff;
+            font-size: 1.15rem;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            margin: 18px 0 10px 0;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        textarea {
+            width: 100%;
+            min-height: 220px;
+            font-size: 1.01rem;
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #bdbdbd;
+            background: #f9fafb;
+            font-family: 'Consolas', 'Menlo', monospace;
+            color: #212121;
+            resize: vertical;
+        }
+        .info {
+            color: #607d8b;
+            font-size: 1.01rem;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .flex-row > div {
+            flex: 1;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 18px 6px 12px 6px; }
+            h2 { font-size: 1.3rem; }
+            .flex-row { flex-direction: column; gap: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Generator kodu SQL dla Subiekt GT</h2>
+        <div class="info">
+            <b>Krok 1:</b> Wybierz markę.<br>
+            <b>Krok 2:</b> Wybierz okres sprzedaży (OD - DO).<br>
+            <b>Krok 3:</b> Ustaw minimalną ilość sprzedanych sztuk.<br>
+            <b>Krok 4:</b> Jeśli chcesz, możesz zmienić zakres dat do filtrowania minimum sprzedaży (domyślnie taki sam jak wyżej).<br>
+            <b>Krok 5:</b> Kliknij <span style="color:#1976d2;">Generuj kod SQL</span>, skopiuj i wklej do Subiekta GT.<br>
+        </div>
+        <div class="step">1. Wybierz markę:</div>
+        <select id="marka"></select>
+        <div class="step">2. Wybierz zakres dat dla analizy sprzedaży:</div>
+        <div class="flex-row">
+            <div>
+                <label for="data_od">Data OD:</label>
+                <input type="date" id="data_od">
+            </div>
+            <div>
+                <label for="data_do">Data DO:</label>
+                <input type="date" id="data_do">
+            </div>
+        </div>
+        <div class="step">3. Minimalna ilość sprzedanych sztuk (np. 3):</div>
+        <input type="number" id="min_ilosc" min="1" value="3" style="margin-bottom:18px;">
+        <div class="step">4. Zakres dat do filtrowania minimum sprzedaży (opcjonalnie):</div>
+        <div class="flex-row">
+            <div>
+                <label for="data_od_min">Data OD (min):</label>
+                <input type="date" id="data_od_min">
+            </div>
+            <div>
+                <label for="data_do_min">Data DO (min):</label>
+                <input type="date" id="data_do_min">
+            </div>
+        </div>
+        <button onclick="generujSQL()">Generuj kod SQL</button>
+        <div class="step">5. Skopiuj kod i wklej do Subiekta GT:</div>
+        <textarea id="sql" readonly placeholder="Wygenerowany kod SQL pojawi się tutaj..."></textarea>
+    </div>
+    <script>
+        // Lista marek posortowana alfabetycznie
+        const marki = [
+            'Atomic', 'Bliz', 'Buff', 'CUBE', 'Cairn', 'Dalbello', 'Descente', 'Dainese', 'Dynastar',
+            'Eisbar', 'Flaxta', 'Head', 'Helly Hansen', 'Julbo', 'KTM', 'KTM Bikes', 'Knog', 'Komperdell',
+            'LEKI', 'Lange', 'Level', 'Look', 'Muc-Off', 'NIKWAX', 'Nordica', 'Oakley', 'ODLO', 'ON-RUNNING',
+            'On-Running', 'Osprey', 'Peak Performance', 'Pirelli', 'POC', 'Quad Lock', 'Reusch', 'Restrap',
+            'Rossignol', 'Salomon', 'Sidas', 'Superfeet', 'TOMMY HILFIGER & ROSSIGNOL', 'UYN',
+            'Uvex', 'VIKING', 'Völkl', 'X-BIONIC', 'X-Bionic', 'X-SOCKS'
+        ];
+
+        // Wypełnij select markami
+        const selectMarka = document.getElementById('marka');
+        marki.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            selectMarka.appendChild(opt);
+        });
+
+        // Ustaw dzisiejszą datę jako domyślną
+        function getToday() {
+            const d = new Date();
+            return d.toISOString().slice(0, 10);
+        }
+        // Ustaw daty domyślne (ostatni miesiąc)
+        function getMonthAgo() {
+            const d = new Date();
+            d.setMonth(d.getMonth() - 1);
+            return d.toISOString().slice(0, 10);
+        }
+        document.getElementById('data_od').value = getMonthAgo();
+        document.getElementById('data_do').value = getToday();
+        document.getElementById('data_od_min').value = getMonthAgo();
+        document.getElementById('data_do_min').value = getToday();
+
+        // Po zmianie daty głównej, ustaw domyślnie takie same daty w filtrze minimum sprzedaży
+        document.getElementById('data_od').addEventListener('change', function() {
+            document.getElementById('data_od_min').value = this.value;
+        });
+        document.getElementById('data_do').addEventListener('change', function() {
+            document.getElementById('data_do_min').value = this.value;
+        });
+
+        function generujSQL() {
+            const marka = document.getElementById('marka').value;
+            const data_od = document.getElementById('data_od').value;
+            const data_do = document.getElementById('data_do').value;
+            const min_ilosc = document.getElementById('min_ilosc').value;
+            const data_od_min = document.getElementById('data_od_min').value;
+            const data_do_min = document.getElementById('data_do_min').value;
+
+            if (!marka || !data_od || !data_do || !min_ilosc || !data_od_min || !data_do_min) {
+                alert("Uzupełnij wszystkie pola!");
+                return;
+            }
+
+            let caseFragment = marki.map(m => `WHEN t.tw_Opis LIKE '%${m.replace(/'/g, "''")}%' THEN '${m}'`).join('\n        ');
+            caseFragment += '\n        ELSE NULL';
+
+            const sql = `
+SELECT
+    t.tw_Symbol,
+    t.tw_Opis,
+    CASE
+        ${caseFragment}
+    END AS [Producent],
+    s1.st_Stan AS [Stan Główny],
+    s5.st_Stan AS [Stan Glinki],
+    (SELECT SUM(st_Stan) FROM tw_Stan WHERE st_TowId = t.tw_Id) AS [Stan Suma],
+    ISNULL(SUM(CASE
+        WHEN d.dok_Typ IN (2, 21, 11)
+             AND d.dok_DataWyst BETWEEN '${data_od}' AND '${data_do}'
+        THEN p.ob_Ilosc
+        ELSE 0
+    END), 0) AS [Ilość sprzedanych w okresie]
+FROM
+    tw__Towar t
+    JOIN tw_Stan s1 ON t.tw_Id = s1.st_TowId AND s1.st_MagId = 1
+    LEFT JOIN tw_Stan s5 ON t.tw_Id = s5.st_TowId AND s5.st_MagId = 5
+    LEFT JOIN dok_Pozycja p ON t.tw_Id = p.ob_TowId
+    LEFT JOIN dok__Dokument d ON p.ob_DokHanId = d.dok_Id
+WHERE
+    t.tw_Zablokowany = 0
+    AND t.tw_Opis NOT LIKE '%kurier%'
+    AND t.tw_Opis NOT LIKE '%serwis%'
+    AND (
+        CASE
+            ${caseFragment}
+        END
+    ) = '${marka}'
+GROUP BY
+    t.tw_Symbol, t.tw_Opis, s1.st_Stan, s5.st_Stan, t.tw_Id
+HAVING
+    ISNULL(SUM(CASE
+        WHEN d.dok_Typ IN (2, 21, 11)
+             AND d.dok_DataWyst BETWEEN '${data_od_min}' AND '${data_do_min}'
+        THEN p.ob_Ilosc
+        ELSE 0
+    END), 0) >= ${min_ilosc}
+ORDER BY
+    [Ilość sprzedanych w okresie] DESC
+            `.trim();
+
+            const textarea = document.getElementById('sql');
+            textarea.value = sql;
+            textarea.focus();
+            textarea.select();
+        }
+    </script>
+</body>
+</html>
