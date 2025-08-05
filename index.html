@@ -43,7 +43,7 @@
             margin-bottom: 6px;
             color: #374151;
         }
-        select, input[type="date"], input[type="number"] {
+        select, input[type="date"], input[type="number"], input[type="text"] {
             width: 100%;
             padding: 10px 8px;
             font-size: 1.08rem;
@@ -109,8 +109,9 @@
             <b>Krok 1:</b> Wybierz markę.<br>
             <b>Krok 2:</b> Wybierz okres sprzedaży (OD - DO).<br>
             <b>Krok 3:</b> Ustaw minimalną ilość sprzedanych sztuk.<br>
-            <b>Krok 4:</b> Jeśli chcesz, możesz zmienić zakres dat do filtrowania minimum sprzedaży (domyślnie taki sam jak wyżej).<br>
-            <b>Krok 5:</b> Kliknij <span style="color:#1976d2;">Generuj kod SQL</span>, skopiuj i wklej do Subiekta GT. Widok -> Zestawienia -> PPM -> Dodaj zestawienie SQL (tworzy nowe), Dane zestawienia (edytuje polecenie SQL danego zestawienia). <br>
+            <b>Krok 4:</b> Wpisz słowo kluczowe do wyszukiwania w opisie (opcjonalnie).<br>
+            <b>Krok 5:</b> Jeśli chcesz, możesz zmienić zakres dat do filtrowania minimum sprzedaży (domyślnie taki sam jak wyżej).<br>
+            <b>Krok 6:</b> Kliknij <span style="color:#1976d2;">Generuj kod SQL</span>, skopiuj i wklej do Subiekta GT.<br>
         </div>
         <div class="step">1. Wybierz markę:</div>
         <select id="marka"></select>
@@ -127,7 +128,11 @@
         </div>
         <div class="step">3. Minimalna ilość sprzedanych sztuk (np. 3):</div>
         <input type="number" id="min_ilosc" min="1" value="3" style="margin-bottom:18px;">
-        <div class="step">4. Zakres dat do filtrowania minimum sprzedaży (opcjonalnie):</div>
+
+        <div class="step">4. Słowo kluczowe do wyszukiwania w opisie (opcjonalne):</div>
+        <input type="text" id="keyword" placeholder="np. spodnie" style="margin-bottom:18px;">
+
+        <div class="step">5. Zakres dat do filtrowania minimum sprzedaży (opcjonalnie):</div>
         <div class="flex-row">
             <div>
                 <label for="data_od_min">Data OD (min):</label>
@@ -139,13 +144,17 @@
             </div>
         </div>
         <button onclick="generujSQL()">Generuj kod SQL</button>
-        <div class="step">5. Skopiuj kod i wklej do Subiekta GT:</div>
+        <div class="step">6. Skopiuj kod i wklej do Subiekta GT:</div>
         <textarea id="sql" readonly placeholder="Wygenerowany kod SQL pojawi się tutaj..."></textarea>
     </div>
     <script>
-        // Lista marek posortowana alfabetycznie
         const marki = [
-            'Atomic', 'Bliz', 'Buff', 'Cairn', 'Colmar', 'CUBE', 'Dainese', 'Dalbello', 'Descente', 'Dynastar', 'Eisbar', 'Flaxta', 'Head', 'Helly Hansen', 'Julbo', 'Knog', 'Komperdell', 'KTM', 'KTM Bikes', 'Lange', 'LEKI', 'Level', 'Look', 'Muc-Off', 'NIKWAX', 'Nordica', 'Oakley', 'ODLO', 'On-Running', 'Osprey', 'Peak Performance', 'Pirelli', 'POC', 'Quad Lock', 'Restrap', 'Reusch', 'Rossignol', 'Salomon', 'Sidas', 'Silvini', 'Superfeet', 'TOMMY HILFIGER & ROSSIGNOL', 'Uvex', 'UYN', 'VIKING', 'Völkl', 'WinterEvent-Shop', 'X-BIONIC', 'X-SOCKS'
+            'Atomic', 'Bliz', 'Buff', 'Cairn', 'Colmar', 'CUBE', 'Dainese', 'Dalbello', 'Descente', 'Dynastar',
+            'Eisbar', 'Flaxta', 'Head', 'Helly Hansen', 'Julbo', 'Knog', 'Komperdell', 'KTM', 'KTM Bikes', 'Lange',
+            'LEKI', 'Level', 'Look', 'Muc-Off', 'NIKWAX', 'Nordica', 'Oakley', 'ODLO', 'On-Running', 'Osprey',
+            'Peak Performance', 'Pirelli', 'POC', 'Quad Lock', 'Restrap', 'Reusch', 'Rossignol', 'Salomon',
+            'Sidas', 'Silvini', 'Superfeet', 'TOMMY HILFIGER & ROSSIGNOL', 'Uvex', 'UYN', 'VIKING', 'Völkl',
+            'WinterEvent-Shop', 'X-BIONIC', 'X-SOCKS'
         ];
 
         // Wypełnij select markami
@@ -188,14 +197,20 @@
             const min_ilosc = document.getElementById('min_ilosc').value;
             const data_od_min = document.getElementById('data_od_min').value;
             const data_do_min = document.getElementById('data_do_min').value;
+            const keyword = document.getElementById('keyword').value.trim();
 
             if (!marka || !data_od || !data_do || !min_ilosc || !data_od_min || !data_do_min) {
-                alert("Uzupełnij wszystkie pola!");
+                alert("Uzupełnij wszystkie pola (oprócz słowa kluczowego, które jest opcjonalne)!");
                 return;
             }
 
             let caseFragment = marki.map(m => `WHEN t.tw_Opis LIKE '%${m.replace(/'/g, "''")}%' THEN '${m}'`).join('\n        ');
             caseFragment += '\n        ELSE NULL';
+
+            let keywordCondition = "";
+            if (keyword.length > 0) {
+                keywordCondition = `AND t.tw_Opis LIKE '%${keyword.replace(/'/g, "''")}%'`;
+            }
 
             const sql = `
 SELECT
@@ -223,6 +238,7 @@ WHERE
     t.tw_Zablokowany = 0
     AND t.tw_Opis NOT LIKE '%kurier%'
     AND t.tw_Opis NOT LIKE '%serwis%'
+    ${keywordCondition}
     AND (
         CASE
             ${caseFragment}
